@@ -2,46 +2,43 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const pretty = require('pretty');
 
-const { getNextPageUrl } = require('./helper');
+const { baseUrl, getNextPageUrl, scrapeTruckItem } = require('./helper');
 
-const initialUrl = 'https://www.otomoto.pl/ciezarowe/uzytkowe/mercedes-benz/q-actros?search%5Bfilter_enum_damaged%5D=0&search%5Border%5D=created_at+%3Adesc';
+const initialUrl = baseUrl + '/ciezarowe/uzytkowe/mercedes-benz/q-actros?search%5Bfilter_enum_damaged%5D=0&search%5Border%5D=created_at+%3Adesc';
 
-async function scrapeData() {
+const ads = [];
+
+async function scrapeAds(url) {
   try {
-    const { data } = await axios.get(initialUrl);
+    const { data } = await axios.get(url);
     const $ = cheerio.load(data);
     const pagination = $('[data-testid="pagination-list"]');
-
-    console.log(getNextPageUrl(pagination))
+    const nextPage = getNextPageUrl(pagination);
     
-    // // Select all the list items in plainlist class
-    // const listItems = $('.plainlist ul li');
-    // // Stores data for all countries
-    // const countries = [];
-    // // Use .each method to loop through the li we selected
-    // listItems.each((idx, el) => {
-    //   // Object holding data for each country/jurisdiction
-    //   const country = { name: '', iso3: '' };
-    //   // Select the text content of a and span elements
-    //   // Store the textcontent in the above object
-    //   country.name = $(el).children('a').text();
-    //   country.iso3 = $(el).children('span').text();
-    //   // Populate countries array with country data
-    //   countries.push(country);
+    const listItems = $('article[data-testid="listing-ad"]');
+    const item = $(listItems[0]);
+    const id = item.attr('id');
+    const title = item.find('[data-testid="ad-title"]');
+    const price = item.find('[data-testid="financing-widget"]');
+    const registrationDate = item.find('[data-testid^="ad-newer-date-"]');
+    console.log(id);
+    console.log(title.text());
+    console.log(price.attr('data-price'));
+    console.log(registrationDate.text());
+    // listItems.each((i, el) => {
+    //   const item = $(el);
+    //   const data = scrapeTruckItem(item);
+    //   console.log(data);
     // });
-    // // Logs countries array to the console
-    // console.dir(countries);
-    // // Write countries array in countries.json file
-    // fs.writeFile('coutries.json', JSON.stringify(countries, null, 2), (err) => {
-    //   if (err) {
-    //     console.error(err);
-    //     return;
-    //   }
-    //   console.log('Successfully written data to file');
-    // });
-  } catch (err) {
-    console.error(err);
+    
+    if(!nextPage) return false;
+
+    // await scrapeAds(nextPage);
+  } catch(error) {
+    console.error(error);
   }
+
+  return false;
 }
 
-scrapeData();
+scrapeAds(initialUrl);
