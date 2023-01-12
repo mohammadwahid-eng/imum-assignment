@@ -1,51 +1,26 @@
-const baseUrl = 'https://www.otomoto.pl';
+const axios = require('axios');
+const cheerio = require('cheerio');
 
-const getNextPageUrl = (pagination) => {
-  const nextPage = pagination.find('[data-testid="pagination-step-forwards"]');
-  if(nextPage.hasClass('pagination-item__disabled')) return null;
-
-  const currentPage = pagination.find('.pagination-item__active a');
-  const currentPageUrl = currentPage.attr('href');
-  const currentPageNumber = parseInt(currentPage.text());
-  
-  let nextPageUrl = undefined;
-  
-  if(currentPageUrl.includes('page=')) {
-    nextPageUrl = currentPageUrl.replace(`page=${currentPageNumber}`, `page=${currentPageNumber + 1}`);
-  } else {
-    nextPageUrl = `${currentPageUrl}&page=${currentPageNumber + 1}`;
-  }
-
-  return baseUrl + nextPageUrl;
-}
-
-const addItems = () => {
-  return {
-    url,
-    id
-  }
-}
-
-const getTotalAdsCount = () => {
-  return 0;
-}
-
-const scrapeTruckItem = (item) => {
+const scrapeTruckItem = async (item) => {
   const id = item.attr('id');
-  const title = item.find(['[data-testid="ad-title"]']);
-  console.log(title.html())
-  return;
-  // const id = 1;
-  
-  const price = 10;
-  const registrationDate = '123';
-  const productionDate = '4536';
-  const mileage = 1;
-  const power = 122;
+  const titleEl = item.find('[data-testid="ad-title"]');
+  const title = titleEl.text().trim() || undefined;
+  const url = titleEl.find('a').attr('href').trim() || undefined;
+  const price = item.find('[data-testid="financing-widget"]').parent().prev().text().trim() || undefined;  
+  const meta = titleEl.siblings('div').children('ul');
+  const productionDate = meta.children('li').eq(0).text().trim() || undefined;
+  const mileage = meta.children('li').eq(1).text().trim() || undefined;
+  const power = meta.children('li').eq(2).text().includes('cm3') ? meta.children('li').eq(2).text().trim(): undefined;
+
+  // registration date is available at detail page
+  const { data } = await axios.get(url);
+  const $ = cheerio.load(data);
+  const registrationDate = $('span:contains("Pierwsza rejestracja")').next().text().trim() || undefined;
 
   return {
     id,
     title,
+    url,
     price,
     registrationDate,
     productionDate,
@@ -54,10 +29,15 @@ const scrapeTruckItem = (item) => {
   }
 }
 
+
+const fetchListItem = async (item) => {
+  console.log('scraping...')
+  const id = item.attr('id');
+  const url = item.find('[data-testid="ad-title"] a').attr('href').trim() || undefined;
+  return { id, url };
+}
+
 module.exports = {
-  baseUrl,
-  getNextPageUrl,
-  addItems,
-  getTotalAdsCount,
   scrapeTruckItem,
+  fetchListItem,
 }
